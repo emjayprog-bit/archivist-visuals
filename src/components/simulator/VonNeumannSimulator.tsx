@@ -172,6 +172,30 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
     }
   };
 
+  const handleLoadInstructions = (instructions: string[]) => {
+    const newMemory = instructions.map((inst, idx) => ({
+      address: idx,
+      data: inst,
+      type: "instruction" as const,
+      accessed: false,
+    }));
+    
+    const dataMemory = memory.filter(m => m.type === "data");
+    setMemory([...newMemory, ...dataMemory]);
+    handleReset();
+  };
+
+  const handleLoadMemory = (address: number, value: number) => {
+    setMemory(prev => {
+      const existing = prev.find(m => m.address === address);
+      if (existing) {
+        return prev.map(m => m.address === address ? { ...m, data: value.toString() } : m);
+      } else {
+        return [...prev, { address, data: value.toString(), type: "data", accessed: false }];
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-background via-background to-cpu-bg">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -237,7 +261,10 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
               </div>
             </Card>
 
-            <ControlPanel />
+            <ControlPanel 
+              onLoadInstructions={handleLoadInstructions}
+              onLoadMemory={handleLoadMemory}
+            />
           </div>
 
           <div className="space-y-6">
