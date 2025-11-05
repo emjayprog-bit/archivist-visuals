@@ -38,6 +38,11 @@ const ModifiedHarvardSimulator = ({ onBack }: ModifiedHarvardSimulatorProps) => 
     const currentIndex = steps.indexOf(currentStep);
     
     if (currentStep === "idle") {
+      if (programCounter >= memory.filter(m => m.type === "instruction").length) {
+        setIsPlaying(false);
+        toast.error("Program complete!");
+        return;
+      }
       setCurrentStep("fetching");
       handleFetch();
     } else if (currentIndex < steps.length - 1) {
@@ -58,6 +63,9 @@ const ModifiedHarvardSimulator = ({ onBack }: ModifiedHarvardSimulatorProps) => 
     } else {
       setCurrentStep("idle");
       setProgramCounter(prev => prev + 1);
+      if (isPlaying) {
+        setTimeout(() => executeStep(), 800);
+      }
     }
   };
 
@@ -164,16 +172,27 @@ const ModifiedHarvardSimulator = ({ onBack }: ModifiedHarvardSimulatorProps) => 
   };
 
   const handleLoadInstructions = (instructions: string[]) => {
-    const newMemory = instructions.map((inst, idx) => ({
-      address: idx,
+    const startIndex = memory.filter(cell => cell.type === "instruction").length;
+    const newInstructions = instructions.map((inst, idx) => ({
+      address: startIndex + idx,
       data: inst,
       type: "instruction" as const,
       accessed: false,
     }));
     
-    const dataMemory = memory.filter(m => m.type === "data");
-    setMemory([...newMemory, ...dataMemory]);
-    handleReset();
+    setMemory(prev => [...prev, ...newInstructions]);
+    if (programCounter === 0 && memory.filter(m => m.type === "instruction").length === 0) {
+      setProgramCounter(0);
+    }
+  };
+
+  const handleResetInstructions = () => {
+    setMemory(prev => prev.filter(cell => cell.type !== "instruction"));
+    setProgramCounter(0);
+    setCurrentStep("idle");
+    setIsPlaying(false);
+    setCurrentInstruction(null);
+    toast.success("Instructions cleared");
   };
 
   const handleLoadMemory = (address: number, value: number) => {
@@ -278,10 +297,11 @@ const ModifiedHarvardSimulator = ({ onBack }: ModifiedHarvardSimulatorProps) => 
               </div>
             </Card>
 
-            <ControlPanel 
-              onLoadInstructions={handleLoadInstructions}
-              onLoadMemory={handleLoadMemory}
-            />
+          <ControlPanel 
+            onLoadInstructions={handleLoadInstructions}
+            onLoadMemory={handleLoadMemory}
+            onResetInstructions={handleResetInstructions}
+          />
           </div>
 
           <div className="space-y-6">

@@ -44,6 +44,11 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
     const currentIndex = steps.indexOf(currentStep);
     
     if (currentStep === "idle") {
+      if (programCounter >= instructionMemory.filter(m => m.data).length) {
+        setIsPlaying(false);
+        toast.error("Program complete!");
+        return;
+      }
       setCurrentStep("fetching");
       handleFetch();
     } else if (currentIndex < steps.length - 1) {
@@ -64,6 +69,9 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
     } else {
       setCurrentStep("idle");
       setProgramCounter(prev => prev + 1);
+      if (isPlaying) {
+        setTimeout(() => executeStep(), 800);
+      }
     }
   };
 
@@ -168,13 +176,26 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
   };
 
   const handleLoadInstructions = (instructions: string[]) => {
-    const newMemory = instructions.map((inst, idx) => ({
-      address: idx,
+    const startIndex = instructionMemory.filter(cell => cell.data).length;
+    const newInstructions = instructions.map((inst, idx) => ({
+      address: startIndex + idx,
       data: inst,
       accessed: false,
     }));
-    setInstructionMemory(newMemory);
-    handleReset();
+    
+    setInstructionMemory(prev => [...prev.filter(m => m.data), ...newInstructions]);
+    if (programCounter === 0 && instructionMemory.filter(m => m.data).length === 0) {
+      setProgramCounter(0);
+    }
+  };
+
+  const handleResetInstructions = () => {
+    setInstructionMemory([]);
+    setProgramCounter(0);
+    setCurrentStep("idle");
+    setIsPlaying(false);
+    setCurrentInstruction(null);
+    toast.success("Instructions cleared");
   };
 
   const handleLoadMemory = (address: number, value: number) => {
@@ -282,10 +303,11 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
               </div>
             </Card>
 
-            <ControlPanel 
-              onLoadInstructions={handleLoadInstructions}
-              onLoadMemory={handleLoadMemory}
-            />
+          <ControlPanel 
+            onLoadInstructions={handleLoadInstructions}
+            onLoadMemory={handleLoadMemory}
+            onResetInstructions={handleResetInstructions}
+          />
           </div>
 
           <div className="space-y-6">

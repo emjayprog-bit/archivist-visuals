@@ -8,9 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 interface ControlPanelProps {
   onLoadInstructions: (instructions: string[]) => void;
   onLoadMemory: (address: number, value: number) => void;
+  onResetInstructions: () => void;
 }
 
-const ControlPanel = ({ onLoadInstructions, onLoadMemory }: ControlPanelProps) => {
+const ControlPanel = ({ onLoadInstructions, onLoadMemory, onResetInstructions }: ControlPanelProps) => {
   const [instructions, setInstructions] = useState("");
   const [memoryAddress, setMemoryAddress] = useState("");
   const [memoryValue, setMemoryValue] = useState("");
@@ -55,10 +56,13 @@ const ControlPanel = ({ onLoadInstructions, onLoadMemory }: ControlPanelProps) =
     });
   };
 
-  const handleClear = () => {
+  const handleResetInstructions = () => {
     setInstructions("");
-    setMemoryAddress("");
-    setMemoryValue("");
+    onResetInstructions();
+    toast({
+      title: "Instructions cleared",
+      description: "All instructions have been removed from memory",
+    });
   };
 
   return (
@@ -72,7 +76,7 @@ const ControlPanel = ({ onLoadInstructions, onLoadMemory }: ControlPanelProps) =
           
           <Textarea 
             placeholder="Enter instructions (e.g., LOAD R1, 100)"
-            className="font-mono text-sm min-h-[120px] bg-background/50"
+            className="font-mono text-sm min-h-[80px] bg-background/50"
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
           />
@@ -84,8 +88,8 @@ const ControlPanel = ({ onLoadInstructions, onLoadMemory }: ControlPanelProps) =
             >
               Load Instructions
             </Button>
-            <Button variant="outline" className="flex-1" onClick={handleClear}>
-              Clear
+            <Button variant="destructive" className="flex-1" onClick={handleResetInstructions}>
+              Reset Instructions
             </Button>
           </div>
         </div>

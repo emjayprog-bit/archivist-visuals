@@ -64,6 +64,27 @@ All colors MUST be HSL.
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-flow: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  @keyframes envelope-travel {
+    0% {
+      left: 0;
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    10% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    90% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      left: calc(100% - 64px);
+      opacity: 0;
+      transform: scale(0.8);
+    }
+  }
 }
 
 @layer base {
