@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Info, CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Info, CheckCircle2, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 interface InfoPanelProps {
   architecture: "von-neumann" | "harvard" | "modified-harvard";
@@ -49,50 +51,65 @@ const architectureInfo = {
 };
 
 const InfoPanel = ({ architecture }: InfoPanelProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const currentInfo = architectureInfo[architecture];
 
   return (
     <div className="space-y-6">
       <Card className="p-6 bg-gradient-card border-border">
-        <div className="flex items-start gap-3 mb-4">
-          <Info className="w-5 h-5 text-primary mt-1" />
-          <div>
-            <h3 className="text-lg font-bold mb-2">{currentInfo.title}</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-primary mt-1" />
+            <h3 className="text-lg font-bold">{currentInfo.title}</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="gap-2"
+          >
+            Info
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
+
+        {isExpanded && (
+          <div className="space-y-4 animate-accordion-down">
             <p className="text-sm text-muted-foreground leading-relaxed">
               {currentInfo.description}
             </p>
+
+            <div className="border-t border-border pt-4">
+              <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-accent" />
+                Advantages
+              </h4>
+              <ul className="space-y-2">
+                {currentInfo.advantages.map((advantage, index) => (
+                  <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                    <span className="text-accent mt-1">•</span>
+                    <span>{advantage}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-destructive" />
+                Disadvantages
+              </h4>
+              <ul className="space-y-2">
+                {currentInfo.disadvantages.map((disadvantage, index) => (
+                  <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                    <span className="text-destructive mt-1">•</span>
+                    <span>{disadvantage}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </div>
-      </Card>
-
-      <Card className="p-6 bg-gradient-card border-border">
-        <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-accent" />
-          Advantages
-        </h4>
-        <ul className="space-y-2">
-          {currentInfo.advantages.map((advantage, index) => (
-            <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-              <span className="text-accent mt-1">•</span>
-              <span>{advantage}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-
-      <Card className="p-6 bg-gradient-card border-border">
-        <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-          <XCircle className="w-4 h-4 text-destructive" />
-          Disadvantages
-        </h4>
-        <ul className="space-y-2">
-          {currentInfo.disadvantages.map((disadvantage, index) => (
-            <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-              <span className="text-destructive mt-1">•</span>
-              <span>{disadvantage}</span>
-            </li>
-          ))}
-        </ul>
+        )}
       </Card>
 
       <Card className="p-6 bg-gradient-card border-border">

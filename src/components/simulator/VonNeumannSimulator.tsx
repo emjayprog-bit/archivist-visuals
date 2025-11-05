@@ -29,9 +29,16 @@ export type MemoryCell = {
 
 export type SimulationState = "idle" | "fetching" | "decoding" | "executing" | "storing";
 
+type StepInfo = {
+  name: string;
+  description: string;
+  timeRange: string;
+};
+
 const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState<SimulationState>("idle");
+  const [stepInfo, setStepInfo] = useState<StepInfo | null>(null);
   const [memory, setMemory] = useState<MemoryCell[]>([
     { address: 0, data: "LOAD R1, 100", type: "instruction", accessed: false },
     { address: 1, data: "LOAD R2, 200", type: "instruction", accessed: false },
@@ -102,12 +109,23 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
       address: programCounter,
     });
 
+    setStepInfo({
+      name: "Fetch",
+      description: `Fetching instruction from memory address ${programCounter}`,
+      timeRange: "50-100ms"
+    });
+
     addDataFlow("memory", "cpu", "instruction");
     toast.info(`Fetched: ${instruction.data}`);
   };
 
   const handleDecode = () => {
     if (currentInstruction) {
+      setStepInfo({
+        name: "Decode",
+        description: `Decoding instruction: ${currentInstruction.operation}`,
+        timeRange: "30-50ms"
+      });
       toast.info(`Decoding: ${currentInstruction.operation}`);
     }
   };
@@ -117,6 +135,12 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
 
     const { operation, operands } = currentInstruction;
     
+    setStepInfo({
+      name: "Execute",
+      description: `Executing ${operation} operation`,
+      timeRange: "100-200ms"
+    });
+
     switch (operation) {
       case "LOAD": {
         const reg = operands[0];
@@ -151,6 +175,11 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
   };
 
   const handleStore = () => {
+    setStepInfo({
+      name: "Store",
+      description: "Writing results back to memory/registers",
+      timeRange: "50-100ms"
+    });
     toast.info("Instruction cycle complete");
   };
 
@@ -271,12 +300,17 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
                   </Button>
                 </div>
 
-                <div className="mt-4 text-center">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-cpu-bg rounded-lg">
-                    <span className="text-sm font-medium">Current Step:</span>
-                    <span className="text-sm text-primary capitalize">{currentStep}</span>
+                {stepInfo && (
+                  <div className="mt-4">
+                    <Card className="p-4 bg-cpu-bg border-primary/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-primary">{stepInfo.name}</span>
+                        <span className="text-xs text-muted-foreground">{stepInfo.timeRange}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{stepInfo.description}</p>
+                    </Card>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
 

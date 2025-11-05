@@ -10,6 +10,12 @@ import { Database } from "lucide-react";
 import { toast } from "sonner";
 import type { Instruction, SimulationState } from "./VonNeumannSimulator";
 
+type StepInfo = {
+  name: string;
+  description: string;
+  timeRange: string;
+};
+
 interface HarvardSimulatorProps {
   onBack: () => void;
 }
@@ -23,6 +29,7 @@ type MemoryCell = {
 const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState<SimulationState>("idle");
+  const [stepInfo, setStepInfo] = useState<StepInfo | null>(null);
   const [instructionMemory, setInstructionMemory] = useState<MemoryCell[]>([
     { address: 0, data: "LOAD R1, 100", accessed: false },
     { address: 1, data: "LOAD R2, 200", accessed: false },
@@ -101,6 +108,11 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
 
   const handleDecode = () => {
     if (currentInstruction) {
+      setStepInfo({
+        name: "Decode",
+        description: `Decoding instruction: ${currentInstruction.operation}`,
+        timeRange: "20-40ms"
+      });
       toast.info(`Decoding: ${currentInstruction.operation}`);
     }
   };
@@ -110,6 +122,12 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
 
     const { operation, operands } = currentInstruction;
     
+    setStepInfo({
+      name: "Execute",
+      description: `Executing ${operation} operation`,
+      timeRange: "80-150ms"
+    });
+
     switch (operation) {
       case "LOAD": {
         const reg = operands[0];
@@ -145,6 +163,11 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
   };
 
   const handleStore = () => {
+    setStepInfo({
+      name: "Store",
+      description: "Writing results back to memory/registers",
+      timeRange: "40-80ms"
+    });
     toast.info("Instruction cycle complete");
   };
 
@@ -294,12 +317,17 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
                   </Button>
                 </div>
 
-                <div className="mt-4 text-center">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-cpu-bg rounded-lg">
-                    <span className="text-sm font-medium">Current Step:</span>
-                    <span className="text-sm text-primary capitalize">{currentStep}</span>
+                {stepInfo && (
+                  <div className="mt-4">
+                    <Card className="p-4 bg-cpu-bg border-primary/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-primary">{stepInfo.name}</span>
+                        <span className="text-xs text-muted-foreground">{stepInfo.timeRange}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{stepInfo.description}</p>
+                    </Card>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
 
