@@ -78,7 +78,12 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
         return;
       }
       setCurrentStep("fetching");
-      setTimeout(() => handleFetch(), 0);
+      setTimeout(() => {
+        handleFetch();
+        if (isPlaying) {
+          setTimeout(() => executeStep(), 500);
+        }
+      }, 100);
     } else if (currentIndex < steps.length - 1) {
       const nextStep = steps[currentIndex + 1];
       setCurrentStep(nextStep);
@@ -98,15 +103,18 @@ const VonNeumannSimulator = ({ onBack }: VonNeumannSimulatorProps) => {
             handleStore();
             break;
         }
-      }, 0);
+        if (isPlaying) {
+          setTimeout(() => executeStep(), 500);
+        }
+      }, 100);
     } else {
       setCurrentStep("idle");
       const nextPC = programCounter + 1;
       setProgramCounter(nextPC);
       
       const totalInstructions = memory.filter(m => m.type === "instruction").length;
-      if (isPlaying && nextPC < totalInstructions) {
-        setTimeout(() => executeStep(), 600);
+      if (nextPC < totalInstructions && isPlaying) {
+        setTimeout(() => executeStep(), 500);
       } else if (nextPC >= totalInstructions) {
         setIsPlaying(false);
         toast.success("All instructions executed!");
