@@ -6,6 +6,7 @@ import CPUComponent from "./components/CPUComponent";
 import ControlPanel from "./components/ControlPanel";
 import InfoPanel from "./components/InfoPanel";
 import DataFlowAnimation from "./components/DataFlowAnimation";
+import TaskRecord, { TaskRecordEntry } from "./components/TaskRecord";
 import { Database } from "lucide-react";
 import { toast } from "sonner";
 import type { Instruction, SimulationState } from "./VonNeumannSimulator";
@@ -30,6 +31,7 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState<SimulationState>("idle");
   const [stepInfo, setStepInfo] = useState<StepInfo | null>(null);
+  const [taskRecords, setTaskRecords] = useState<TaskRecordEntry[]>([]);
   const [instructionMemory, setInstructionMemory] = useState<MemoryCell[]>([
     { address: 0, data: "LOAD R1, 100", accessed: false },
     { address: 1, data: "LOAD R2, 200", accessed: false },
@@ -46,43 +48,68 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
   const [registers, setRegisters] = useState({ R1: 0, R2: 0, R3: 0 });
   const [dataFlows, setDataFlows] = useState<Array<{ id: string; from: string; to: string; type: "data" | "instruction" }>>([]);
 
+  const addTaskRecord = (stepName: string, description: string, actualTime: number) => {
+    const record: TaskRecordEntry = {
+      id: `task-${Date.now()}-${Math.random()}`,
+      stepName,
+      description,
+      actualTime,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    setTaskRecords(prev => [...prev, record]);
+  };
+
   const executeStep = () => {
     const steps: SimulationState[] = ["fetching", "decoding", "executing", "storing"];
     const currentIndex = steps.indexOf(currentStep);
     
     if (currentStep === "idle") {
-      if (programCounter >= instructionMemory.filter(m => m.data).length) {
+      const totalInstructions = instructionMemory.filter(m => m.data).length;
+      if (programCounter >= totalInstructions) {
         setIsPlaying(false);
-        toast.error("Program complete!");
+        toast.success("Program execution complete!");
         return;
       }
       setCurrentStep("fetching");
-      handleFetch();
+      setTimeout(() => {
+        handleFetch();
+        handleFetchData();
+      }, 0);
     } else if (currentIndex < steps.length - 1) {
       const nextStep = steps[currentIndex + 1];
       setCurrentStep(nextStep);
       
-      switch (nextStep) {
-        case "decoding":
-          handleDecode();
-          break;
-        case "executing":
-          handleExecute();
-          break;
-        case "storing":
-          handleStore();
-          break;
-      }
+      setTimeout(() => {
+        switch (nextStep) {
+          case "decoding":
+            handleDecode();
+            break;
+          case "executing":
+            handleExecute();
+            break;
+          case "storing":
+            handleStore();
+            break;
+        }
+      }, 0);
     } else {
       setCurrentStep("idle");
-      setProgramCounter(prev => prev + 1);
-      if (isPlaying) {
-        setTimeout(() => executeStep(), 800);
+      const nextPC = programCounter + 1;
+      setProgramCounter(nextPC);
+      
+      const totalInstructions = instructionMemory.filter(m => m.data).length;
+      if (isPlaying && nextPC < totalInstructions) {
+        setTimeout(() => executeStep(), 600);
+      } else if (nextPC >= totalInstructions) {
+        setIsPlaying(false);
+        toast.success("All instructions executed!");
       }
     }
   };
 
   const handleFetch = () => {
+    const startTime = performance.now();
+    
     if (programCounter >= instructionMemory.length) {
       toast.error("Program complete!");
       setIsPlaying(false);
@@ -102,30 +129,63 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
       address: programCounter,
     });
 
+    const actualTime = Math.round(performance.now() - startTime + (40 + Math.random() * 40));
+    
+    setStepInfo({
+      name: "Fetch Instruction",
+      description: `Fetching instruction from address ${programCounter}`,
+      timeRange: `${actualTime}ms`
+    });
+
+    addTaskRecord("Fetch Instruction", `Fetched: ${instruction.data}`, actualTime);
     addDataFlow("instruction-memory", "cpu", "instruction");
     toast.info(`Fetched: ${instruction.data}`);
   };
 
+  const handleFetchData = () => {
+    if (!currentInstruction) return;
+    const startTime = performance.now();
+    
+    const { operation, operands } = currentInstruction;
+    if (operation === "LOAD" && operands[1]) {
+      const addr = parseInt(operands[1]);
+      setDataMemory(prev => prev.map(m => 
+        m.address === addr ? { ...m, accessed: true } : { ...m, accessed: false }
+      ));
+      const actualTime = Math.round(performance.now() - startTime + (30 + Math.random() * 30));
+      addTaskRecord("Fetch Data (Parallel)", `Fetched data from address ${addr}`, actualTime);
+    }
+  };
+
   const handleDecode = () => {
+    const startTime = performance.now();
+    
     if (currentInstruction) {
+      const actualTime = Math.round(performance.now() - startTime + (20 + Math.random() * 20));
+      
       setStepInfo({
         name: "Decode",
         description: `Decoding instruction: ${currentInstruction.operation}`,
-        timeRange: "20-40ms"
+        timeRange: `${actualTime}ms`
       });
+      
+      addTaskRecord("Decode", `Decoded ${currentInstruction.operation} instruction`, actualTime);
       toast.info(`Decoding: ${currentInstruction.operation}`);
     }
   };
 
   const handleExecute = () => {
+    const startTime = performance.now();
+    
     if (!currentInstruction) return;
 
     const { operation, operands } = currentInstruction;
+    const actualTime = Math.round(performance.now() - startTime + (80 + Math.random() * 70));
     
     setStepInfo({
       name: "Execute",
       description: `Executing ${operation} operation`,
-      timeRange: "80-150ms"
+      timeRange: `${actualTime}ms`
     });
 
     switch (operation) {
@@ -136,6 +196,7 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
         setRegisters(prev => ({ ...prev, [reg]: value }));
         setDataMemory(prev => prev.map(m => m.address === addr ? { ...m, accessed: true } : { ...m, accessed: false }));
         addDataFlow("data-memory", "cpu", "data");
+        addTaskRecord("Execute", `LOAD: Loaded ${value} into ${reg} from address ${addr}`, actualTime);
         toast.success(`Loaded ${value} into ${reg}`);
         break;
       }
@@ -145,6 +206,7 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
         const src2 = operands[2];
         const result = registers[src1 as keyof typeof registers] + registers[src2 as keyof typeof registers];
         setRegisters(prev => ({ ...prev, [destReg]: result }));
+        addTaskRecord("Execute", `ADD: ${src1} + ${src2} = ${result}, stored in ${destReg}`, actualTime);
         toast.success(`Added ${src1} + ${src2} = ${result}`);
         break;
       }
@@ -156,6 +218,7 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
           m.address === addr ? { ...m, data: value.toString(), accessed: true } : m
         ));
         addDataFlow("cpu", "data-memory", "data");
+        addTaskRecord("Execute", `STORE: Stored ${value} from ${reg} to address ${addr}`, actualTime);
         toast.success(`Stored ${value} to address ${addr}`);
         break;
       }
@@ -163,11 +226,16 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
   };
 
   const handleStore = () => {
+    const startTime = performance.now();
+    const actualTime = Math.round(performance.now() - startTime + (40 + Math.random() * 40));
+    
     setStepInfo({
       name: "Store",
       description: "Writing results back to memory/registers",
-      timeRange: "40-80ms"
+      timeRange: `${actualTime}ms`
     });
+    
+    addTaskRecord("Store", "Instruction cycle complete, results written back", actualTime);
     toast.info("Instruction cycle complete");
   };
 
@@ -188,6 +256,7 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
     setInstructionMemory(prev => prev.map(m => ({ ...m, accessed: false })));
     setDataMemory(prev => prev.map(m => ({ ...m, accessed: false })));
     setDataFlows([]);
+    setTaskRecords([]);
     toast.success("Simulation reset");
   };
 
@@ -339,6 +408,7 @@ const HarvardSimulator = ({ onBack }: HarvardSimulatorProps) => {
           </div>
 
           <div className="space-y-6">
+            <TaskRecord records={taskRecords} />
             <InfoPanel architecture="harvard" />
           </div>
         </div>
